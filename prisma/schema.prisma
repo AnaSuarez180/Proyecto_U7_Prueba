@@ -21,3 +21,23 @@ model User {
     // playlists Playlist[]
     @@map("users")
 }
+
+model Song {
+  id         Int       @id @default(autoincrement())
+  name       String?
+  artist     String?
+  album      String?
+  year       Int
+  genre      String
+  duration   Int
+  private Boolean @default(false)
+  playlistID Int?
+  playlists  Playlist[] @relation("SongPlaylist")
+}
+
+model Playlist {
+  id      Int     @id @default(autoincrement())
+  name    String?
+  user_id Int
+  songs   Song[]  @relation("SongPlaylist")
+}
