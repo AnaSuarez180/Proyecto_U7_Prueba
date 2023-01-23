@@ -46,21 +46,20 @@ const newUser = await prisma.user.create({
 res.json(newUser);
 });
 
-
 app.get('/api/v1/getusers', async (req: Request, res: Response) => {
-const users = await prisma.user.findMany({
-    select: {
-        id: true,
-        name: true,
-        email: true,
-        last_session: true,
-        created_at: true,
-        date_born: true
-    }
+    const users = await prisma.user.findMany({
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            last_session: true,
+            created_at: true,
+            date_born: true
+        }
+    });
+    res.json(users);
 });
-res.json(users);
-});
-  
+
 app.post('/api/v1/songs', async (req: Request, res: Response) => {
     const songs = await prisma.song.findMany();
     res.json(songs);
@@ -69,7 +68,8 @@ app.post('/api/v1/songs', async (req: Request, res: Response) => {
 app.get("/api/v1/getsongs", async (req, res) => {
     try {
         const songs = await prisma.song.findMany();
-        const songsWithPlaylist = await Promise.all(songs.map(async (song) => {
+
+        const songsWithPlaylist = await Promise.all(songs.map(async (song:any) => {
             const playlists = await prisma.playlist.findMany({
                 where: {
                     songs: {
@@ -87,15 +87,17 @@ app.get("/api/v1/getsongs", async (req, res) => {
                 playlists
             }
         }))
-        res.json({songsWithPlaylist});
+        res.json({ songsWithPlaylist });
     } catch (error) {
-    res.status(500).json({
-        success: false,
-        message: 'Error al obtener las canciones',
-        
-    });
-  }
-  });
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener las canciones',
+
+        });
+    }
+});
+
+
 
 app.get("/api/v1/getsongs/:id", async (req, res) => {
     const { id } = req.params;
@@ -158,7 +160,9 @@ app.get("/api/v1/getplaylists", async (req, res) => {
           
       });
     }
-  });
+});
+
+
 
 app.post("/api/v1/playlists/addsong", async (req, res) => {
 const { id_song, id_playlist } = req.body;
