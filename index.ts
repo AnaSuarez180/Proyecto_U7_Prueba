@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
 
+
 dotenv.config();
 
 
@@ -60,10 +61,24 @@ app.get('/api/v1/getusers', async (req: Request, res: Response) => {
     res.json(users);
 });
 
+
 app.post('/api/v1/songs', async (req: Request, res: Response) => {
-    const songs = await prisma.song.findMany();
-    res.json(songs);
-});
+    const { name, artist, album, year, genre, duration,playlists,privacysong } = req.body
+    const song = await prisma.song.create({
+        data: {
+            name,
+            artist,
+            album,
+            year,
+            genre,
+            duration,
+            privacysong,
+            playlists: {}
+          
+        }
+    })
+    res.json(song)
+  })
 
 app.get("/api/v1/getsongs", async (req, res) => {
     try {
@@ -194,7 +209,98 @@ try {
     });
 }
 });
-  
+
+app.post("/api/v1/token", async (req: Request, res: Response) => {
+    try {
+        const data = req.body
+    
+        const element = await prisma.user.findUnique({
+          where: {email:data.email}
+        })
+    
+        if (element && element.password === data.password) {
+          const token = jwt.sign({element}, process.env.SECRET_KEY??"", {
+            expiresIn:"12h"
+          })
+          res.status(200).json({
+            element,
+            token,
+          });
+        }
+        
+      } catch (error) {
+        res.status(500).json({
+          ok: false,
+          message: error,
+        });
+        console.log(error);
+      }
+}),
+
+app.post('/login', async (req: Request, res: Response) => {
+    try {
+    const user = req.body as { email: string, password: string};
+    const email = user.email;
+    const password = user.password;
+
+    const existingUser = await prisma.user.findUnique({
+        where: {
+            email: email
+        }
+    });
+
+    if(!existingUser) {
+        return res.status(404).json({error: 'Usuario no encontrado.'});
+    }
+
+    const isMatch = await bcrypt.compare(password, existingUser.password);
+
+    if(!isMatch) {
+        return res.status(401).json({error: 'Contraseña incorrecta'});
+    }
+
+    const token = jwt.sign({id: existingUser.id}, 'secretKey');
+
+    res.status(200).json({
+        ok: true,
+        result: { token },
+    });
+    } catch (error) {
+    res.status(500).json({
+        ok: false,
+        message: error,
+    });
+    console.log(error);
+    }
+});
+
+app.get('/songs',async (req: Request, res: Response) => {
+    const util = require('util');
+    const verify = util.promisify(jwt.verify);
+
+    async function validarToken(req: Request, res: Response) {
+    const { authorization } = req.headers;
+    if (!authorization || !authorization.startsWith("Bearer ")) {
+    return false;
+    }
+
+    const token = authorization.replace("Bearer ", "");
+    try {
+    await verify(token, 'secretKey');
+    return true;
+    } catch (err) {
+    return false;
+    }
+}
+    const isTokenValid = await validarToken(req, res);
+    let songs;
+    if (!isTokenValid) {
+        songs = await prisma.song.findMany({ where: { privacysong: false } });
+    } else {
+        songs = await prisma.song.findMany();
+    }
+    res.json(songs);
+});
 
 app.listen(port, () => {
     console.log(`El servidor se ejecuta en http://localhost:${port}`);

@@ -30,7 +30,7 @@ model Song {
   year       Int
   genre      String
   duration   Int
-  private Boolean @default(false)
+  privacysong  Boolean @default(false)
   playlistID Int?
   playlists  Playlist[] @relation("SongPlaylist")
 }
